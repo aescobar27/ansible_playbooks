@@ -1,0 +1,43 @@
+- name: Test Collection AIX
+  hosts: all
+  gather_facts: true
+  vars: 
+    aix_reports_path: /tmp
+  collections:
+  - ibm.power_aix
+  
+  tasks:
+  - name: Listar paquetes del directorio /tmp
+    ibm.power_aix.installp:
+      action: list
+      device: /tmp
+    register: registro_installp_listado_paquetes
+    become: yes
+
+  - name: Create file /tmp/hola with content "Hello World"
+    ansible.builtin.copy:
+      content: hello world
+      dest: /ari/hola
+    register: file_reg
+    ignore_errors: true
+
+  - debug:
+      msg: "{{file_reg}}"
+
+  - debug:
+      msg: "NO se creo el archivo"
+    when: file_reg.failed == true
+
+  - name: Umount FS
+    mount:
+      path: /
+      state: unmounted
+    ignore_errors: true
+    register: umount_result
+
+  - debug:
+      msg: "{{umount_result}}"
+
+  - debug:
+      msg: "El FS bk_mksysb no se monto"
+    when: umount_result.failed == true
