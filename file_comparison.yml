@@ -1,0 +1,47 @@
+- name: Comparacion Archivos
+  hosts: all
+  gather_facts: true
+  order: sorted
+  vars: 
+    aix_reports_path: /tmp
+
+  collections:
+  - ibm.power_aix
+  
+  tasks:
+  - name: "Definir hechos "
+    ansible.builtin.set_fact:
+      report_name: "{{ ansible_hostname }}_{{ ansible_date_time.date }}_{{ ansible_date_time.hour  }}{{ ansible_date_time.minute }}{{ ansible_date_time.second  }}_{{ tower_job_id }}_report.txt"
+  
+  - name: "Tomar evidencias previas al parchado"
+    ansible.builtin.include_tasks:
+      file: extra_tasks.yaml
+    vars:
+      report_file: "{{ report_name }}"
+  
+  - name: "Cat report"
+    command:
+      "cat /tmp/report_pre_patch.txt"
+    register: report_pre_patch
+    
+  - name: "Get report_pre_patch"
+    ansible.builtin.set_fact:
+      aix_report_pre_patch: "{{ report_pre_patch.stdout }}"
+      
+  - name: "Comparar informacion de reportes pre y post patching "
+    ansible.builtin.shell: >-
+      diff "{{ aix_report_pre_patch }}"  "{{ aix_report_post_patch }}"
+    args:
+      chdir: "{{ aix_reports_path }}"
+    register: registro_aix_comparar_reportes
+    failed_when: registro_aix_comparar_reportes.rc > 1
+    changed_when: registro_aix_comparar_reportes.rc == 1
+    
+  - name: "Comparar informacion de reportes pre y post patching - Resultado"
+    ansible.builtin.debug:
+      msg: "{{ registro_aix_comparar_reportes.stdout_lines }}" 
+      
+  - name: "Eliminacion del archivo"
+    ansible.builtin.file:
+      path: "/tmp/report_pre_patch.txt"
+      state: absent
