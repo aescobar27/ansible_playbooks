@@ -1,0 +1,9 @@
+---
+- name: Get Hostname
+  ansible.builtin.set_fact:
+    aix_hostname: "{{ ansible_hostname }}"
+
+- name: Check /etc/resolv.conf
+  ansible.builtin.stat:
+    path: /etc/resolv.conf
+  register: result_resolv
